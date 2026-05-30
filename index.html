@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Stretch">
+<meta name="theme-color" content="#0f0f0f">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Daily Stretch Routine</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0f0f; --surface: #1a1a1a; --surface2: #242424;
+    --border: #2e2e2e; --text: #e8e4dc; --muted: #888;
+    --gym: #c8a96e; --desk: #6e9ec8; --pf: #c86e6e; --accent: #c8a96e;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html { height: 100%; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: 'DM Sans', sans-serif; font-weight: 300;
+    min-height: 100%; padding: 0 0 calc(80px + var(--safe-bottom));
+    -webkit-font-smoothing: antialiased;
+  }
+
+  header {
+    padding: calc(16px + var(--safe-top)) 20px 16px;
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; background: var(--bg); z-index: 10;
+  }
+  header h1 { font-family: 'DM Serif Display', serif; font-size: 1.5rem; font-weight: 400; letter-spacing: -0.02em; }
+  header p { color: var(--muted); font-size: 0.75rem; margin-top: 3px; letter-spacing: 0.06em; text-transform: uppercase; }
+  .legend { display: flex; gap: 14px; margin-top: 10px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 0.7rem; color: var(--muted); letter-spacing: 0.05em; text-transform: uppercase; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; }
+  .dot-gym { background: var(--gym); } .dot-desk { background: var(--desk); } .dot-pf { background: var(--pf); }
+
+  .section-label { padding: 24px 20px 8px; font-size: 0.65rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+
+  .stretch-card { margin: 5px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; transition: border-color 0.2s; }
+  .stretch-card.open { border-color: var(--accent); }
+
+  .card-header { display: flex; align-items: center; gap: 10px; padding: 13px 14px; cursor: pointer; user-select: none; }
+  .card-number { font-family: 'DM Serif Display', serif; font-size: 1.2rem; color: var(--muted); min-width: 26px; text-align: center; opacity: 0.5; }
+  .card-info { flex: 1; }
+  .card-name { font-size: 0.88rem; font-weight: 500; color: var(--text); line-height: 1.3; }
+  .card-meta { font-size: 0.68rem; color: var(--muted); margin-top: 2px; }
+  .card-badges { display: flex; gap: 4px; align-items: center; }
+  .badge { font-size: 0.58rem; letter-spacing: 0.08em; text-transform: uppercase; padding: 2px 6px; border-radius: 20px; font-weight: 500; }
+  .badge-gym { background: rgba(200,169,110,0.15); color: var(--gym); }
+  .badge-desk { background: rgba(110,158,200,0.15); color: var(--desk); }
+  .badge-pf { background: rgba(200,110,110,0.15); color: var(--pf); }
+  .card-duration { font-size: 0.68rem; color: var(--muted); text-align: right; min-width: 65px; white-space: nowrap; }
+
+  .card-body { display: none; padding: 0 14px 14px; border-top: 1px solid var(--border); }
+  .stretch-card.open .card-body { display: block; }
+
+  .card-body p { font-size: 0.82rem; line-height: 1.7; color: #bbb; margin-top: 12px; }
+  .card-body p strong { color: var(--text); font-weight: 500; }
+  .why-box { background: var(--surface2); border-left: 2px solid var(--accent); padding: 9px 11px; margin-top: 10px; font-size: 0.75rem; line-height: 1.6; color: #999; border-radius: 0 6px 6px 0; }
+  .why-box strong { color: var(--gym); }
+  .target-tags { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 8px; }
+  .tag { font-size: 0.62rem; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 7px; background: var(--surface2); border: 1px solid var(--border); border-radius: 20px; color: var(--muted); }
+
+  /* TIMER */
+  .timer-block { margin-top: 14px; background: var(--surface2); border-radius: 8px; overflow: hidden; }
+  .timer-phase { padding: 12px 14px; border-bottom: 1px solid var(--border); }
+  .timer-phase:last-child { border-bottom: none; }
+  .phase-label { font-size: 0.72rem; font-weight: 500; color: var(--text); letter-spacing: 0.04em; margin-bottom: 8px; }
+  .phase-label span { color: var(--muted); font-weight: 300; font-size: 0.68rem; margin-left: 6px; }
+  .timer-row { display: flex; align-items: center; gap: 10px; }
+
+  .ring-wrap { position: relative; width: 52px; height: 52px; flex-shrink: 0; }
+  .ring-wrap svg { width: 52px; height: 52px; transform: rotate(-90deg); }
+  .ring-bg { fill: none; stroke: var(--border); stroke-width: 3; }
+  .ring-fg { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; transition: stroke-dashoffset 1s linear; }
+  .ring-time { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 0.78rem; font-weight: 500; color: var(--text); letter-spacing: -0.02em; text-align: center; }
+
+  .timer-controls { display: flex; gap: 6px; flex: 1; flex-wrap: wrap; align-items: center; }
+  .btn-timer { font-family: 'DM Sans', sans-serif; font-size: 0.72rem; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; padding: 8px 13px; border-radius: 6px; border: 1px solid var(--border); cursor: pointer; transition: all 0.15s; min-height: 36px; }
+  .btn-start { background: var(--accent); color: #0f0f0f; border-color: var(--accent); }
+  .btn-start:active { opacity: 0.75; }
+  .btn-pause { background: transparent; color: var(--muted); }
+  .btn-pause:active { color: var(--text); }
+  .btn-reset { background: transparent; color: var(--muted); }
+  .btn-reset:active { color: var(--text); }
+  .phase-status { font-size: 0.68rem; color: var(--muted); margin-top: 4px; }
+  .phase-status.done { color: #6ec87a; }
+  .phase-status.active { color: var(--gym); }
+
+  .pt-note { margin: 20px 14px 0; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 14px; font-size: 0.78rem; line-height: 1.7; color: #999; }
+  .pt-note strong { color: var(--text); }
+  .pf-note { margin: 0 14px 5px; background: rgba(200,110,110,0.06); border: 1px solid rgba(200,110,110,0.2); border-radius: 8px; padding: 11px 13px; font-size: 0.75rem; line-height: 1.6; color: #999; }
+  .pf-note strong { color: var(--pf); }
+
+  /* Install banner */
+  #install-banner {
+    display: none; position: fixed; bottom: calc(16px + var(--safe-bottom)); left: 14px; right: 14px;
+    background: var(--surface); border: 1px solid var(--accent); border-radius: 12px;
+    padding: 14px 16px; z-index: 100; box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+  }
+  #install-banner p { font-size: 0.82rem; color: var(--text); margin-bottom: 10px; line-height: 1.5; }
+  #install-banner p span { color: var(--accent); font-weight: 500; }
+  .banner-btns { display: flex; gap: 8px; }
+  .btn-install { flex: 1; font-family: 'DM Sans', sans-serif; font-size: 0.75rem; font-weight: 500; padding: 9px; border-radius: 7px; border: none; cursor: pointer; }
+  .btn-install-yes { background: var(--accent); color: #0f0f0f; }
+  .btn-install-no { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
+
+  /* iOS install tip */
+  #ios-tip {
+    display: none; position: fixed; bottom: calc(16px + var(--safe-bottom)); left: 14px; right: 14px;
+    background: var(--surface); border: 1px solid var(--accent); border-radius: 12px;
+    padding: 14px 16px; z-index: 100; box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+  }
+  #ios-tip p { font-size: 0.82rem; color: var(--text); line-height: 1.6; }
+  #ios-tip span { color: var(--accent); font-weight: 500; }
+  #ios-tip-close { position: absolute; top: 10px; right: 14px; background: none; border: none; color: var(--muted); font-size: 1.1rem; cursor: pointer; padding: 4px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Daily Stretch Routine</h1>
+  <p>18 stretches · ~22 min · Post-gym &amp; post-desk</p>
+  <div class="legend">
+    <div class="legend-item"><div class="dot dot-gym"></div> Post-gym</div>
+    <div class="legend-item"><div class="dot dot-desk"></div> Post-desk</div>
+    <div class="legend-item"><div class="dot dot-pf"></div> Plantar fasciitis</div>
+  </div>
+</header>
+
+<div class="section-label">Phase 1 — Standing</div>
+
+<div class="stretch-card">
+  <div class="card-header" onclick="toggle(this.parentElement)">
+    <div class="card-number">1</div>
+    <div class="card-info"><div class="card-name">Standing Chest Opener</div><div class="card-meta">Pectorals · Anterior deltoid · Thoracic extension</div></div>
+    <div class="card-badges"><span class="badge badge-desk">Desk</span></div>
+    <div class="card-duration">30–45s × 3</div>
+  </div>
+  <div class="card-body">
+    <p>Stand tall. Clasp hands behind your back, squeeze shoulder blades together, and <strong>lift your arms slightly while opening the chest upward</strong>. Hold 30–45 seconds. Release. Repeat 3 times.</p>
+    <div class="why-box"><strong>Why:</strong> Desk sitting drives the shoulders forward and collapses the chest into flexion all day. This reverses that pattern.</div>
+    <div class="target-tags"><span class="tag">Pectorals</span><span class="tag">Anterior deltoid</span><span class="tag">Thoracic extension</span></div>
+    <div class="timer-block">
+      <div class="timer-phase" data-seconds="40" data-label="Rep 1" data-id="1a"></div>
+      <div class="timer-phase" data-seconds="40" data-label="Rep 2" data-id="1b"></div>
+      <div class="timer-phase" data-seconds="40" data-label="Rep 3" data-id="1c"></div>
+    </div>
+  </div>
+</div>
+
+<div class="stretch-card">
+  <div class="card-header" onclick="toggle(this.parentElement)">
+    <div class="card-number">2</div>
+    <div class="card-info"><div class="card-name">Doorway Chest Stretch</div><div class="card-meta">Pectorals · Anterior capsule · Internal rotation correction</div></div>
+    <div class="card-badges"><span class="badge badge-gym">Gym</span><span class="badge badge-desk">Desk</span></div>
+    <div class="card-duration">30s each side × 2</div>
+  </div>
+  <div class="card-body">
+    <p>Place forearm against a wall or doorframe at 90°, elbow at shoulder height. <strong>Step forward until you feel a strong stretch across the chest and front of shoulder</strong>. Vary elbow height for different fibres.</p>
+    <div class="why-box"><strong>Why:</strong> Presses and rows create internal rotation. Sitting compounds it. This directly counteracts that pattern and restores shoulder joint centration.</div>
+    <div class="target-tags"><span class="tag">Pectorals</span><span class="tag">Anterior capsule</span><span class="tag">Shoulder rotation</span></div>
+    <div class="timer-block">
+      <div class="timer-phase" data-seconds="30" data-label="Right side" data-id="2a"></div>
+      <div class="timer-phase" data-seconds="30" data-label="Left side" data-id="2b"></div>
+      <div class="timer-phase" data-seconds="30" data-label="Right side — rep 2" data-id="2c"></div>
+      <div class="timer-phase" data-seconds="30" data-label="Left side — rep 2" data-id="2d"></div>
+    </div>
+  </div>
+</div>
+
+<div class="stretch-card">
+  <div class="card-header" onclick="toggle(this.parentElement)">
+    <div class="card-number">3</div>
+    <div class="card-info"><div class="card-name">Standing Hip Flexor Lunge</div><div class="card-meta">Iliopsoas · Rectus femoris · Anterior pelvis</div></div>
+    <div class="card-badges"><span class="badge badge-gym">Gym</span><span class="badge badge-desk">Desk</span></div>
+    <div class="card-duration">45–60s each side</div>
+  </div>
+  <div class="card-body">
+    <p>Step forward into a deep lunge. Back knee can touch the floor. <strong>Drive the hips forward and squeeze the glute of the back leg</strong>. Keep the torso tall. Raise the same-side arm overhead for more stretch.</p>
+    <div class="why-box"><strong>Why:</strong> Hip flexors shortened by both sitting and squatting. A tight iliopsoas anteriorly tilts the pelvis and causes lower back pain. The glute squeeze deepens the stretch via reciprocal inhibition.</div>
+    <div class="target-tags"><span class="tag">Iliopsoas</span><span class="tag">Rectus femoris</span><span class="tag">Lower back</span></div>
+    <div class="timer-block">
+      <div class="timer-phase" data-seconds="50" data-label="Right leg back" data-id="3a"></div>
+      <div class="timer-phase" data-seconds="50" data-label="Left leg back" data-id="3b"></div>
+    </div>
+  </div>
+</div>
+
+<div class="stretch-card">
+  <div class="card-header" onclick="toggle(this.parentElement)">
+    <div class="card-number">4</div>
+    <div class="card-info"><div class="card-name">Standing Lat Stretch</div><div class="card-meta">Latissimus dorsi · Teres major · Thoracolumbar fascia</div></div>
+    <div class="card-badges"><span class="badge badge-gym">Gym</span></div>
+    <div class="card-duration">30s each side × 2</div>
+  </div>
+  <div class="card-body">
+    <p>Stand next to a doorframe. Reach overhead with one hand and grip it. <strong>Lean your body away, letting your arm pull the lat into a long stretch</strong>. Hold 30 seconds each side.</p>
+    <div class="why-box"><strong>Why:</strong> After pulling work, the lats pull the shoulders into internal rotation. Commonly missed in gym routines.</div>
+    <div class="target-tags"><span class="tag">Latissimus dorsi</span><span class="tag">Teres major</span><span class="tag">Shoulder rotation</span></div>
+    <div class="timer-block">
+      <div class="timer-phase" data-seconds="30" data-label="Right side" data-id="4a"></div>
+      <div class="timer-phase" data-seconds="30" data-label="Left side" data-id="4b"></div>
+      <div class="timer-phase" data-seconds="30" data-label="Right side — rep 2" data-id="4c"></div>
+      <div class="timer-phase" data-seconds="30" data-label="Left side — rep 2" data-id="4d"></div>
+    </div>
+  </div>
+</div>
+
+<div class="stretch-card">
+  <div class="card-header" onclick="toggle(this.parentElement)">
+    <div class="card-number">5</div>
+    <div class="card-info"><div class="card-name">Standing Calf &amp; Achilles</div><div class="card-meta">Gastrocnemius · Soleus · Achilles tendon</div></div>
+    <div class="card-badges"><span class="badge badge-gym">Gym</span></div>
+    <div class="card-duration">45s each position, each leg</div>
+  </div>
+  <div class="card-body">
+    <p><strong>Gastrocnemius (straight knee):</strong> Step back into a lunge, keep the back leg straight, press the heel flat. 45 seconds.</p>
+    <p><strong>Soleus/Achilles (bent knee):</strong> Same position, <strong>bend the back knee toward the floor</strong> while keeping the heel down. 45 seconds.</p>
+    <div class="why-box"><strong>Why:</strong> Tight calves alter gait mechanics, increase Achilles stress, and contribute to plantar fasciitis. Two-position stretch is essential to cover both muscles.</div>
+    <div class="target-tags"><span class="tag">Gastrocnemius</span><span class="tag">Soleus</span><span class="tag">Achilles</span><span class="tag">Ankle mobility</span></div>
+    <div class="timer-block">
+      <div class="timer-phase" data-seconds="45" data-label="Right — straight knee (gastrocnemius)" data-id="5a"></div>
+      <div class="timer-phase" data-seconds="45" data-label="Right — bent knee (soleus/Achilles)" data-id="5b"></div>
+      <div class="timer-phase" data-seconds="45" data-label="Left — straight knee (gastrocnemius)" data-id="5c"></div>
+      <div class="timer-phase" data-seconds="45" data-label="Left — bent knee (soleus/Achilles)" data-id="5d"></div>
+    </div>
+  </div>
+</div>
+
+<div class="stretch-card">
+  <div class="card-header" onclick="toggle(this.parentElement)">
+    <div class="card-number">6</div>
+    <div class="card-info"><div class="card-name">Standing Forward Fold</div><div class="card-meta">Hamstrings · Lumbar erectors · Thoracic spine</div></div>
+    <div class="card-badges"><span class="badge badge-gym">Gym</span><span class="badge badge-desk">Desk</span></div>
+    <div class="card-duration">60s</div>
+  </div>
+  <div class="card-body">
+    <p>Stand with feet hip-width. Hinge at the hips and <strong>hang forward, letting gravity do the work</strong>. Let your head drop fully. Soft bend in knees is fine. Optional: clasp opposite elbows and sway gently.</p>
+    <div class="why-box"><strong>Why:</strong> Gravity traction is more effective than forced holds. The 60s hold gives the nervous system time to release, not just the muscle.</div>
+    <div class="target-tags"><span class="tag">Hamstrings</span><span class="tag">Lumbar erectors</span><span class="tag">Spinal decompression</span></div>
+    <div class="timer-block">
+      <div class="timer-phase" data-seconds="60" data-label="Forward fold" data-id="6a"></div>
+    </div>
+  </div>
+</div>
+
+<div class="section-label">Phase 2 — Floor (stay down until done)</div>
+
+<div class="stretch-card">
+  <div class="card-header" onclick="toggle(this.parentElement)">
+    <div class="card-number">7</div>
+    <div class="card-info"><div class="card-name">Thoracic Extension Over Rolled Towel</div><div class="card-meta">Thoracic spine · Intercostals · Kyphosis reversal</div></div>
+    <div class="card-badges"><span class="badge badge-desk">Desk</span></div>
+    <div class="card-duration">2–3 min</div>
+  </div>
+  <div class="card-body">
+    <p>Roll a towel into a firm cylinder. Lie back over it so it sits <strong>across your mid-back at the thoracic spine level</strong> (between shoulder blades). Arms can cross the chest or extend overhead. Let gravity work. Breathe deeply.</p>
+    <div class="why-box"><strong>Why:</strong> Sitting collapses the thoracic spine into flexion for hours. This is the single most important desk recovery exercise. Two to three minutes is needed for the connective tissue to respond.</div>
+    <div class="target-tags"><span class="tag">Thoracic spine</span><span class="tag">Intercostals</span><span class="tag">Posture</span></div>
+    <div class="timer-block">
+      <div class="timer-phase" data-seconds="150" data-label="Thoracic extension hold" data-id="7a"></div>
+    </div>
+  </div>
+</div>
+
+<div class="stretch-card">
+  <div class="card-header" onclick="toggle(this.parentElement)">
+    <div class="card-number">8</div>
+    <div class="card-info"><div class="card-name">Thread the Needle</div><div class="card-meta">Thoracic rotation · Posterior capsule · Rhomboids</div></div>
+    <div class="card-badges"><span class="badge badge-desk">Desk</span></div>
+    <div class="card-duration">45s each side × 2</div>
+  </div>
+  <div class="card-body">
+    <p>Start on all fours. <strong>Slide one arm under your body, threading it through until your shoulder and temple rest on the floor</strong>. The top arm can reach opposite for more rotation. Hold 45 seconds each side. Repeat twice.</p>
+    <div class="why-box"><strong>Why:</strong> The thoracic spine loses rotational mobility quickly from sustained sitting. This targets the mid-back specifically where rotation is anatomically intended but frequently locked.</div>
+    <div class="target-tags"><span class="tag">Thoracic rotation</span><span class="tag">Posterior capsule</span><span class="tag">Rhomboids</span></div>
+    <div class="timer-block">
+      <div class="timer-phase" data-seconds="45" data-label="Right arm threaded" data-id="8a"></div>
+      <div class="timer-phase" data-seconds="45" data-label="Left arm threaded" data-id="8b"></div>
+      <div class="timer-phase" data-seconds="45" data-label="Right — rep 2" data-id="8c"></div>
+      <div class="timer-phase" data-seconds="45" data-label="Left — rep 2" data-id="8d"></div>
+    </div>
+  </div>
+</div>
+
+<div class="stretch-card">
+  <div class="card-header" onclick="toggle(this.parentElement)">
+    <div class="card-number">9</div>
+    <div class="card-info"><div class="card-name">Child's Pose with Lat Reach</div><div class="card-meta">Lats · Thoracolumbar fascia · Hip flexors</div></div>
+    <div class="card-badges"><span class="badge badge-gym">Gym</span><span class="badge badge-desk">Desk</span></div>
+    <div class="card-duration">60s centre + 30s each side</div>
+  </div>
+  <div class="card-body">
+    <p>Kneel and sit back onto heels. Walk hands forward until fully extended. <strong>Let your chest sink toward the floor</strong>. 60 seconds centre. Then walk both hands to the right — feel the left lat lengthen. 30 seconds. Repeat left.</p>
+    <div class="why-box"><strong>Why:</strong> Simultaneously loads lats, thoracolumbar fascia, and hip flexors. The lateral reach adds specific lat bias the central position doesn't provide.</div>
+    <div class="target-tags"><span class="tag">Lats</span><span class="tag">Thoracolumbar fascia</span><span class="tag">Hip flexors</span></div>
+    <div class="timer-block">
+      <div class="timer-phase" data-seconds="60" data-label="Centre" data-id="9a"></div>
+      <div class="timer-phase" data-seconds="30" data-label="Walk hands right (left lat)" data-id="9b"></div>
+      <div class="timer-phase" data-seconds="30" data-label="Walk hands left (right lat)" data-id="9c"></div>
+    </div>
+  </div>
+</div>
+
+<div class="stretch-card">
+  <div class="card-header" onclick="toggle(this.parentElement)">
+    <div class="card-number">10</div>
+    <div class="card-info"><div class="card-name">Figure-Four / Piriformis Stretch</div><div class="card-meta">Piriformis · Glute medius · Sciatic nerve</div></div>
+    <div class="card-badges"><span class="badge badge-gym">Gym</span><span class="badge badge-desk">Desk</span></div>
+    <div class="card-duration">60s each side</div>
+  </div>
+  <div class="card-body">
+    <p>Lie on your back, knees bent. Cross the right ankle over the left knee. <strong>Flex the right foot (pull toes toward shin) to protect the knee</strong>. Draw both legs toward your chest or press the right knee gently away.</p>
+    <p>If you feel this in the knee rather than the glute, re-flex the foot or adjust the angle.</p>
+    <div class="why-box"><strong>Why:</strong> A tight piriformis is one of the most common causes of lower back and sciatic-type pain — compressed by both sitting and squatting.</div>
+    <div class="target-tags"><span class="tag">Piriformis</span><span class="tag">Glute medius</span><span class="tag">Sciatic nerve</span></div>
+    <div class="timer-block">
+      <div class="timer-phase" data-seconds="60" data-label="Right ankle over left knee" data-id="10a"></div>
+      <div class="timer-phase" data-seconds="60" data-label="Left ankle over right knee" data-id="10b"></div>
+    </div>
+  </div>
+</div>
+
+<div class="stretch-card">
+  <div class="card-header" onclick="toggle(this.parentElement)">
+    <div class="card-number">11</div>
+    <div class="card-info"><div class="card-name">Supine Glute Stretch</div><div class="card-meta">Gluteus maximus · Lumbar extensors · Sacroiliac joint</div></div>
+    <div class="card-badges"><span class="badge badge-gym">Gym</span><span class="badge badge-desk">Desk</span></div>
+    <div class="card-duration">45s each side, then both</div>
+  </div>
+  <div class="card-body">
+    <p>Lie on your back. Pull one knee to your chest, holding the shin or back of the thigh. <strong>Keep the opposite leg flat on the floor</strong>. Hold 45 seconds each side. Then draw both knees to chest and rock gently for 30 seconds.</p>
+    <div class="why-box"><strong>Why:</strong> The gluteus maximus is the largest and most trained muscle yet almost never stretched. Glute tightness pulls on the sacrum and contributes to lower back stiffness.</div>
+    <div class="target-tags"><span class="tag">Gluteus maximus</span><span class="tag">Lumbar extensors</span><span class="tag">Sacroiliac joint</span></div>
+    <div class="timer-block">
+      <div class="timer-phase" data-seconds="45" data-label="Right knee to chest" data-id="11a"></div>
+      <div class="timer-phase" data-seconds="45" data-label="Left knee to chest" data-id="11b"></div>
+      <div class="timer-phase" data-seconds="30" data-label="Both knees — gentle rock" data-id="11c"></div>
+    </div>
+  </div>
+</div>
+
+<div class="stretch-card">
+  <div class="card-header" onclick="toggle(this.parentElement)">
+    <div class="card-number">12</div>
+    <div class="card-info"><div class="card-name">Supine Hamstring Stretch</div><div class="card-meta">Hamstrings · Sciatic nerve · Posterior chain</div></div>
+    <div class="card-badges"><span class="badge badge-gym">Gym</span><span class="badge badge-desk">Desk</span></div>
+    <div class="card-duration">60s each side</div>
+  </div>
+  <div class="card-body">
+    <p>Lie on your back. Raise one leg and hold behind the thigh or calf. <strong>Straighten the leg as far as comfortable</strong>, toes pointing toward the ceiling. Keep the other leg flat. Use a towel or belt if needed.</p>
+    <div class="why-box"><strong>Why:</strong> The supine position stabilises the pelvis, preventing the lumbar spine from compensating. A 60-second hold is needed for viscoelastic relaxation — shorter holds are insufficient.</div>
+    <div class="target-tags"><span class="tag">Hamstrings</span><span class="tag">Sciatic nerve</span><span class="tag">Posterior chain</span></div>
+    <div class="timer-block">
+      <div class="timer-phase" data-seconds="60" data-label="Right leg raised" data-id="12a"></div>
+      <div class="timer-phase" data-seconds="60" data-label="Left leg raised" data-id="12b"></div>
+    </div>
+  </div>
+</div>
+
+<div class="stretch-card">
+  <div class="card-header" onclick="toggle(this.parentElement)">
+    <div class="card-number">13</div>
+    <div class="card-info"><div class="card-name">Kneeling Quad &amp; Tucked-Toe</div><div class="card-meta">Quadriceps · Rectus femoris · Plantar fascia</div></div>
+    <div class="card-badges"><span class="badge badge-gym">Gym</span></div>
+    <div class="card-duration">30s tucked + 45s flat</div>
+  </div>
+  <div class="card-body">
+    <p><strong>Phase 1 — Toes tucked (30s):</strong> Kneel with toes curled under. Sit back gently onto your heels — strong stretch along the sole of the foot and plantar fascia.</p>
+    <p><strong>Phase 2 — Toes flat, lean back (45s):</strong> Straighten toes flat. Place hands behind you and <strong>lean back to stretch the quad</strong>.</p>
+    <div class="why-box"><strong>Why:</strong> Two-phase efficiency — tucked toe is one of the most effective plantar fascia stretches. The lean-back is superior to standing quad stretches because both knees load simultaneously under bodyweight gravity.</div>
+    <div class="target-tags"><span class="tag">Quadriceps</span><span class="tag">Plantar fascia</span><span class="tag">Achilles</span></div>
+    <div class="timer-block">
+      <div class="timer-phase" data-seconds="30" data-label="Toes tucked under" data-id="13a"></div>
+      <div class="timer-phase" data-seconds="45" data-label="Toes flat — lean back (quad)" data-id="13b"></div>
+    </div>
+  </div>
+</div>
+
+<div class="stretch-card">
+  <div class="card-header" onclick="toggle(this.parentElement)">
+    <div class="card-number">14</div>
+    <div class="card-info"><div class="card-name">Butterfly / Groin Stretch</div><div class="card-meta">Hip adductors · Groin · Medial knee</div></div>
+    <div class="card-badges"><span class="badge badge-gym">Gym</span><span class="badge badge-desk">Desk</span></div>
+    <div class="card-duration">60–90s</div>
+  </div>
+  <div class="card-body">
+    <p>Sit on the floor. Bring the soles of your feet together. <strong>Bring your feet closer toward your groin to increase the stretch</strong>. Sit tall. Allow gravity to lower the knees. For more depth, gently press knees down with elbows.</p>
+    <div class="why-box"><strong>Why:</strong> Bringing the feet closer widens the knee angle which creates the adductor stretch — the common error of moving feet away is counterproductive.</div>
+    <div class="target-tags"><span class="tag">Hip adductors</span><span class="tag">Groin</span><span class="tag">Inner thigh</span></div>
+    <div class="timer-block">
+      <div class="timer-phase" data-seconds="75" data-label="Butterfly hold" data-id="14a"></div>
+    </div>
+  </div>
+</div>
+
+<div class="stretch-card">
+  <div class="card-header" onclick="toggle(this.parentElement)">
+    <div class="card-number">15</div>
+    <div class="card-info"><div class="card-name">Seated Spinal Twist</div><div class="card-meta">Thoracic rotation · Lumbar rotators · IT band</div></div>
+    <div class="card-badges"><span class="badge badge-desk">Desk</span></div>
+    <div class="card-duration">45s each side</div>
+  </div>
+  <div class="card-body">
+    <p>Sit on the floor, legs extended. Bend one knee and place that foot outside the opposite knee. <strong>Rotate toward the bent knee, placing the opposite elbow on the outside of it</strong>. Use the elbow as a lever. Sit tall.</p>
+    <div class="why-box"><strong>Why:</strong> This works primarily at the thoracic spine and hips, exactly where desk workers lose rotation. The IT band also receives beneficial tensioning.</div>
+    <div class="target-tags"><span class="tag">Thoracic rotation</span><span class="tag">Lumbar rotators</span><span class="tag">IT band</span></div>
+    <div class="timer-block">
+      <div class="timer-phase" data-seconds="45" data-label="Right knee up — twist right" data-id="15a"></div>
+      <div class="timer-phase" data-seconds="45" data-label="Left knee up — twist left" data-id="15b"></div>
+    </div>
+  </div>
+</div>
+
+<div class="stretch-card">
+  <div class="card-header" onclick="toggle(this.parentElement)">
+    <div class="card-number">16</div>
+    <div class="card-info"><div class="card-name">Suboccipital Release</div><div class="card-meta">Suboccipitals · Upper cervical · Tension headache prevention</div></div>
+    <div class="card-badges"><span class="badge badge-desk">Desk</span></div>
+    <div class="card-duration">2–3 min</div>
+  </div>
+  <div class="card-body">
+    <p>Lie on your back. Place both thumbs (or a rolled towel) at the base of your skull, just below the occipital ridge. <strong>Let the weight of your head create gentle traction</strong>. Relax fully — don't push. Add small yes/no head nods to mobilise C1/C2.</p>
+    <div class="why-box"><strong>Why:</strong> Screen work shortens the four suboccipital muscles — the primary cause of tension headaches and neck stiffness. Most PTIs miss this entirely.</div>
+    <div class="target-tags"><span class="tag">Suboccipitals</span><span class="tag">Upper cervical</span><span class="tag">Tension headaches</span></div>
+    <div class="timer-block">
+      <div class="timer-phase" data-seconds="150" data-label="Suboccipital release" data-id="16a"></div>
+    </div>
+  </div>
+</div>
+
+<div class="section-label">Plantar Fasciitis Treatment</div>
+<div class="pf-note"><strong>Note:</strong> Do stretch 17 every morning before your first step out of bed — not just in this routine. That single habit is the most evidence-backed intervention for plantar fasciitis.</div>
+
+<div class="stretch-card">
+  <div class="card-header" onclick="toggle(this.parentElement)">
+    <div class="card-number">17</div>
+    <div class="card-info"><div class="card-name">Seated Plantar Fascia Stretch</div><div class="card-meta">Plantar fascia · Toe extensors · First-step pain</div></div>
+    <div class="card-badges"><span class="badge badge-pf">PF</span></div>
+    <div class="card-duration">30s × 3 each foot</div>
+  </div>
+  <div class="card-body">
+    <p>Sit in a chair or on the floor. Cross your right foot over your left knee. <strong>Grip your toes and pull them firmly back toward your shin</strong> until you feel a strong stretch along the arch. Hold 30 seconds. Repeat 3 times each foot.</p>
+    <p><strong>First thing in the morning:</strong> Do this before taking your first step out of bed. The plantar fascia tightens overnight and the first step tears the fibres slightly — pre-stretching prevents that micro-damage.</p>
+    <div class="why-box"><strong>Why:</strong> The most clinically validated stretch for plantar fasciitis. The 3 × 30s protocol is specifically what the research uses. Do it here AND every morning before standing.</div>
+    <div class="target-tags"><span class="tag">Plantar fascia</span><span class="tag">Arch</span><span class="tag">First-step pain</span></div>
+    <div class="timer-block">
+      <div class="timer-phase" data-seconds="30" data-label="Right foot — rep 1" data-id="17a"></div>
+      <div class="timer-phase" data-seconds="30" data-label="Right foot — rep 2" data-id="17b"></div>
+      <div class="timer-phase" data-seconds="30" data-label="Right foot — rep 3" data-id="17c"></div>
+      <div class="timer-phase" data-seconds="30" data-label="Left foot — rep 1" data-id="17d"></div>
+      <div class="timer-phase" data-seconds="30" data-label="Left foot — rep 2" data-id="17e"></div>
+      <div class="timer-phase" data-seconds="30" data-label="Left foot — rep 3" data-id="17f"></div>
+    </div>
+  </div>
+</div>
+
+<div class="stretch-card">
+  <div class="card-header" onclick="toggle(this.parentElement)">
+    <div class="card-number">18</div>
+    <div class="card-info"><div class="card-name">Frozen Bottle Roll</div><div class="card-meta">Plantar fascia · Arch massage · Anti-inflammatory</div></div>
+    <div class="card-badges"><span class="badge badge-pf">PF</span></div>
+    <div class="card-duration">2 min each foot</div>
+  </div>
+  <div class="card-body">
+    <p>Freeze a standard plastic water bottle. Place it on the floor. <strong>Sit in a chair and slowly roll the sole of your foot from heel to ball and back</strong>, applying moderate downward pressure. 2 minutes each foot. Focus extra time on tender spots.</p>
+    <div class="why-box"><strong>Why:</strong> Combines mechanical stretching with anti-inflammatory cold therapy simultaneously. Particularly effective immediately after activity.</div>
+    <div class="target-tags"><span class="tag">Plantar fascia</span><span class="tag">Arch</span><span class="tag">Heel insertion</span></div>
+    <div class="timer-block">
+      <div class="timer-phase" data-seconds="120" data-label="Right foot roll" data-id="18a"></div>
+      <div class="timer-phase" data-seconds="120" data-label="Left foot roll" data-id="18b"></div>
+    </div>
+  </div>
+</div>
+
+<div class="pt-note">
+  <strong>Senior PT Note:</strong> This routine addresses every major tightness pattern for someone training at the gym and sitting at a desk. Never bounce a stretch. A strong pull is correct; sharp or joint pain means stop. Consistent use 5–7 nights per week will produce noticeable ROM improvements within 3–4 weeks. The plantar fasciitis protocol requires both the morning stretch and the evening routine — evenings alone won't resolve it.
+</div>
+
+<!-- Install banner (Android/Chrome) -->
+<div id="install-banner">
+  <p>Add <span>Stretch Routine</span> to your home screen for quick access — works offline too.</p>
+  <div class="banner-btns">
+    <button class="btn-install btn-install-yes" id="install-btn">Add to Home Screen</button>
+    <button class="btn-install btn-install-no" id="install-dismiss">Not now</button>
+  </div>
+</div>
+
+<!-- iOS install tip -->
+<div id="ios-tip">
+  <button id="ios-tip-close">✕</button>
+  <p>To install: tap the <span>Share</span> button in Safari, then <span>Add to Home Screen</span>.</p>
+</div>
+
+<script>
+// ── Audio ────────────────────────────────────────────────────────────────
+let audioCtx;
+function getCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+function beep(type = 'tick') {
+  try {
+    const ctx = getCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    if (type === 'done') {
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      osc.frequency.setValueAtTime(1100, ctx.currentTime + 0.12);
+      gain.gain.setValueAtTime(0.4, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+      osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.5);
+    } else {
+      osc.frequency.setValueAtTime(660, ctx.currentTime);
+      gain.gain.setValueAtTime(0.15, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
+      osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.08);
+    }
+  } catch(e) {}
+}
+
+// ── Timer state ──────────────────────────────────────────────────────────
+const timers = {};
+
+function formatTime(s) {
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return m > 0 ? `${m}:${sec.toString().padStart(2,'0')}` : `${sec}s`;
+}
+
+function initPhase(el) {
+  const id = el.dataset.id;
+  const total = parseInt(el.dataset.seconds);
+  const label = el.dataset.label;
+  if (timers[id]) return;
+  timers[id] = { total, remaining: total, running: false, interval: null, done: false };
+  const circumference = 2 * Math.PI * 22;
+  el.innerHTML = `
+    <div class="phase-label">${label}<span>${formatTime(total)}</span></div>
+    <div class="timer-row">
+      <div class="ring-wrap">
+        <svg viewBox="0 0 52 52">
+          <circle class="ring-bg" cx="26" cy="26" r="22"/>
+          <circle class="ring-fg" cx="26" cy="26" r="22" stroke-dasharray="${circumference}" stroke-dashoffset="0"/>
+        </svg>
+        <div class="ring-time">${formatTime(total)}</div>
+      </div>
+      <div class="timer-controls">
+        <button class="btn-timer btn-start" onclick="startTimer('${id}')">Start</button>
+        <button class="btn-timer btn-pause" onclick="pauseTimer('${id}')">Pause</button>
+        <button class="btn-timer btn-reset" onclick="resetTimer('${id}')">Reset</button>
+      </div>
+    </div>
+    <div class="phase-status" id="status-${id}"></div>
+  `;
+}
+
+function updateRing(el, remaining, total) {
+  const circumference = 2 * Math.PI * 22;
+  const ring = el.querySelector('.ring-fg');
+  const timeEl = el.querySelector('.ring-time');
+  if (!ring || !timeEl) return;
+  const progress = remaining / total;
+  ring.style.strokeDashoffset = circumference * (1 - progress);
+  timeEl.textContent = formatTime(remaining);
+  ring.style.stroke = remaining <= 10 ? '#c86e6e' : remaining <= 20 ? '#c8a96e' : 'var(--accent)';
+}
+
+function startTimer(id) {
+  const t = timers[id];
+  if (!t || t.running || t.done) return;
+  t.running = true;
+  const phaseEl = document.querySelector(`[data-id="${id}"]`);
+  const status = document.getElementById(`status-${id}`);
+  if (status) { status.textContent = 'Active'; status.className = 'phase-status active'; }
+  t.interval = setInterval(() => {
+    t.remaining--;
+    updateRing(phaseEl, t.remaining, t.total);
+    if (t.remaining > 0 && t.remaining <= 5) beep('tick');
+    if (t.remaining <= 0) {
+      clearInterval(t.interval);
+      t.running = false; t.done = true;
+      beep('done');
+      if (status) { status.textContent = '✓ Done'; status.className = 'phase-status done'; }
+      updateRing(phaseEl, 0, t.total);
+      const allPhases = phaseEl.closest('.timer-block').querySelectorAll('.timer-phase');
+      const ids = Array.from(allPhases).map(p => p.dataset.id);
+      const nextIdx = ids.indexOf(id) + 1;
+      if (nextIdx < ids.length) setTimeout(() => startTimer(ids[nextIdx]), 1500);
+    }
+  }, 1000);
+}
+
+function pauseTimer(id) {
+  const t = timers[id];
+  if (!t || !t.running) return;
+  clearInterval(t.interval); t.running = false;
+  const status = document.getElementById(`status-${id}`);
+  if (status) { status.textContent = 'Paused'; status.className = 'phase-status'; }
+}
+
+function resetTimer(id) {
+  const t = timers[id];
+  if (!t) return;
+  clearInterval(t.interval); t.running = false; t.done = false; t.remaining = t.total;
+  const phaseEl = document.querySelector(`[data-id="${id}"]`);
+  updateRing(phaseEl, t.total, t.total);
+  const status = document.getElementById(`status-${id}`);
+  if (status) { status.textContent = ''; status.className = 'phase-status'; }
+}
+
+function toggle(card) {
+  const wasOpen = card.classList.contains('open');
+  card.classList.toggle('open');
+  if (!wasOpen) card.querySelectorAll('.timer-phase[data-id]').forEach(initPhase);
+}
+
+// ── PWA Install ──────────────────────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(() => {});
+}
+
+let deferredPrompt;
+const banner = document.getElementById('install-banner');
+const iosTip = document.getElementById('ios-tip');
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  setTimeout(() => { if (banner) banner.style.display = 'block'; }, 2000);
+});
+
+document.getElementById('install-btn')?.addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  banner.style.display = 'none';
+});
+
+document.getElementById('install-dismiss')?.addEventListener('click', () => {
+  banner.style.display = 'none';
+});
+
+document.getElementById('ios-tip-close')?.addEventListener('click', () => {
+  iosTip.style.display = 'none';
+});
+
+// Show iOS tip if on Safari and not already installed
+const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+const isInStandaloneMode = window.navigator.standalone;
+if (isIos && !isInStandaloneMode) {
+  setTimeout(() => { if (iosTip) iosTip.style.display = 'block'; }, 2500);
+}
+</script>
+</body>
+</html>
